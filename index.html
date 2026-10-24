@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f4f7fb">
+    <title>Office Days Calculator</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <p class="eyebrow">Hybrid work planner</p>
+        <h1>Office Days Calculator</h1>
+        <p class="intro">Find your minimum in-office days for a month using the hybrid policy and your calendar.</p>
+      </header>
+
+      <section class="panel controls" aria-labelledby="storage-heading">
+        <h2 id="storage-heading">Your local data file</h2>
+        <p class="hint">Office days, holidays, leave and approved exceptions load from office-days-data.json in the HybridCalculator folder and are saved there after every change. Only the current and previous year's records are retained. No database or browser storage is used. Double-click <code>Open Calculator.cmd</code> to start the app and open your browser. Keep its window open while using the app.</p>
+        <div class="file-actions">
+          <button id="reload-file" type="button">Reload data</button>
+          <button id="save-file" type="button" class="secondary" disabled>Retry save</button>
+        </div>
+        <p id="file-status" class="hint" role="status">Loading local data...</p>
+      </section>
+
+      <section class="panel controls" aria-labelledby="month-heading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">1. Choose a month</p>
+            <h2 id="month-heading">Monthly requirement</h2>
+          </div>
+          <p class="policy-pill">Eligible employee</p>
+        </div>
+        <div class="control-row">
+          <label>
+            Month
+            <select id="month"></select>
+          </label>
+          <label>
+            Year
+            <input id="year" type="number" inputmode="numeric">
+          </label>
+        </div>
+        <p class="hint">Policy target: 60% of adjusted working days, rounded up. The policy also expects 3 office days per week; missed days may be caught up later in the month.</p>
+      </section>
+
+      <section class="summary-grid" aria-label="Monthly totals" aria-live="polite">
+        <article class="metric metric-primary">
+          <span class="metric-label">Minimum office days</span>
+          <strong id="required-days">—</strong>
+          <span id="target-description" class="metric-detail">Choose a month and year</span>
+        </article>
+        <article class="metric">
+          <span class="metric-label">Attendance percentage</span>
+          <strong id="attendance-percentage">—</strong>
+          <span id="attendance-description" class="metric-detail">Based on the minimum office days</span>
+        </article>
+        <article class="metric">
+          <span class="metric-label">Adjusted working days</span>
+          <strong id="working-days">—</strong>
+          <span class="metric-detail">After weekends, holidays, leave and approved exceptions</span>
+        </article>
+        <article class="metric">
+          <span class="metric-label">Weekday dates excluded</span>
+          <strong id="excluded-days">—</strong>
+          <span class="metric-detail">Each date is counted only once</span>
+        </article>
+        <article class="metric">
+          <span class="metric-label">Marked office days</span>
+          <strong id="marked-days">0</strong>
+          <span id="marked-description" class="metric-detail">Mark your office days in the calendar</span>
+        </article>
+        <article class="metric">
+          <span class="metric-label">Marked attendance</span>
+          <strong id="marked-percentage">—</strong>
+          <span class="metric-detail">Marked office days / adjusted working days</span>
+        </article>
+        <article class="metric metric-primary">
+          <span class="metric-label">Remaining office days</span>
+          <strong id="remaining-days">—</strong>
+          <span class="metric-detail">Minimum office days minus marked office days, never below zero</span>
+        </article>
+      </section>
+
+      <section class="panel calendar-panel" aria-labelledby="calendar-heading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">2. Monthly view</p>
+            <h2 id="calendar-heading">Calendar</h2>
+          </div>
+          <div id="calendar-month-label" class="calendar-month-label"></div>
+        </div>
+        <div class="legend" aria-label="Calendar legend">
+          <span><i class="legend-dot working"></i>Working day</span>
+          <span><i class="legend-dot office"></i>Marked office day</span>
+          <span><i class="legend-dot weekend"></i>Weekend</span>
+          <span><i class="legend-dot holiday"></i>Public holiday</span>
+          <span><i class="legend-dot floating"></i>Selected floating holiday</span>
+          <span><i class="legend-dot personal"></i>Leave / exception</span>
+        </div>
+        <p class="hint calendar-help">Click a working day to mark or unmark it as an office day. Excluded dates cannot be marked. If a marked date later becomes excluded, its mark is retained but does not count until it becomes a working day again.</p>
+        <div id="calendar" class="calendar" role="grid" aria-label="Monthly calendar"></div>
+      </section>
+
+      <div class="management-grid">
+        <section class="panel" aria-labelledby="days-off-heading">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">3. Adjust your month</p>
+              <h2 id="days-off-heading">Leave and approved exceptions</h2>
+            </div>
+          </div>
+          <p class="hint">Add dates that are approved and should be removed from the monthly denominator. Pending exceptions are not included by the policy.</p>
+          <form id="absence-form" class="entry-form">
+            <label>
+              Date
+              <input id="absence-date" type="date" required>
+            </label>
+            <label>
+              Type
+              <select id="absence-type">
+                <option value="leave">Leave</option>
+                <option value="exception">Approved exception</option>
+              </select>
+            </label>
+            <button type="submit">Add date</button>
+          </form>
+          <ul id="absence-list" class="entry-list"></ul>
+        </section>
+
+        <section class="panel" aria-labelledby="holidays-heading">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">4. Maintain the calendar</p>
+              <h2 id="holidays-heading">Holidays</h2>
+            </div>
+          </div>
+          <p class="hint">Holiday entries load from office-days-data.json. Add or remove entries here; changes are saved to that file. Floating holidays count only when selected; select no more than two per year.</p>
+          <form id="holiday-form" class="entry-form holiday-form">
+            <label>
+              Date
+              <input id="holiday-date" type="date" required>
+            </label>
+            <label>
+              Name
+              <input id="holiday-name" type="text" maxlength="80" required>
+            </label>
+            <label>
+              Type
+              <select id="holiday-type">
+                <option value="public">Public holiday</option>
+                <option value="floating">Floating holiday</option>
+              </select>
+            </label>
+            <button type="submit">Add holiday</button>
+          </form>
+          <ul id="holiday-list" class="entry-list"></ul>
+        </section>
+      </div>
+
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+      <footer>
+        <p>Calculation follows the uploaded 2024 hybrid policy. This tool is a planning aid; approved leave and exception records remain subject to your company systems.</p>
+      </footer>
+    </main>
+  </body>
+</html>
